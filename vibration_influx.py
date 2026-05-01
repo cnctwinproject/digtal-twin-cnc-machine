@@ -4,7 +4,7 @@ from datetime import datetime
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 
 url = "http://localhost:8086"
-token = "Q5EHft9htmg4rJ6Nct7Zp_tFuZ50EFeYrAfQFwTvYTc-IdSlSpYzj59nGtY2hykqBkTOeSOe2qVMlfj4sh5tcA=="
+token = "YfRVMDNRL349HKwJPNSh-0PmzBjTqIqWgCskDLXaJWXhyIv8KPbUEzuPtBtb9wBXkZbpGJst7RFbkO7EDEsIvg=="
 org = "cnc-org"
 bucket = "cnc_data"
 
@@ -21,7 +21,7 @@ while True:
         .field("vibration", vibration)
         .field("temperature", temperature)
         .field("rpm", rpm)
-        .time(datetime.utcnow(), WritePrecision.NS)
+        .time(datetime.now(), WritePrecision.NS)   # changed line
     )
 
     write_api.write(bucket=bucket, org=org, record=point)
