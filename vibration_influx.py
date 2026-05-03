@@ -12,7 +12,7 @@ client = InfluxDBClient(url=url, token=token, org=org)
 write_api = client.write_api()
 
 while True:
-    vibration = round(random.uniform(6.0, 9.0), 2)
+    vibration = round(random.uniform(6.0, 11.0), 2)
     temperature = round(random.uniform(30, 90), 2)
     rpm = random.randint(1000, 5000)
 
@@ -21,7 +21,7 @@ while True:
         .field("vibration", vibration)
         .field("temperature", temperature)
         .field("rpm", rpm)
-        .time(datetime.now(), WritePrecision.NS)   # changed line
+        .time(datetime.utcnow(), WritePrecision.NS)
     )
 
     write_api.write(bucket=bucket, org=org, record=point)

@@ -10,7 +10,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 # INFLUXDB CONFIG
 # =====================
 url = "http://localhost:8086"
-token = "hCya2h1PVTb6GNHLYtCfkQ92ZiOLaKiIQvMl0y-9Ws0SYSfPtooW8r9L_KC29RPkQD9QDSblDs8QDhPRx9DfYw=="
+token = "YfRVMDNRL349HKwJPNSh-0PmzBjTqIqWgCskDLXaJWXhyIv8KPbUEzuPtBtb9wBXkZbpGJst7RFbkO7EDEsIvg=="
 org = "cnc-org"
 bucket = "cnc_data"
 
@@ -36,9 +36,9 @@ model = LSTMModel()
 try:
     model.load_state_dict(torch.load("lstm_model.pth", map_location="cpu"))
     model.eval()
-    print("🤖 LSTM Model Loaded")
+    print(" LSTM Model Loaded")
 except:
-    print("⚠️ LSTM model not found → Rule-based mode only")
+    print(" LSTM model not found → Rule-based mode only")
 
 buffer = []
 
@@ -49,15 +49,21 @@ def on_message(client, userdata, msg):
     try:
         data = json.loads(msg.payload.decode())
 
+        #  CLEAN INPUT (FROM MQTT)
         temp = float(data["temperature"])
         rpm = float(data["rpm"])
         vibration = float(data["vibration"])
 
-        print("\n🤖 EDGE AI DETECTOR")
+        anomaly = int(data.get("anomaly", 0))           
+        master_alert = int(data.get("master_alert", 0)) 
+
+        print("\n🤖EDGE AI DETECTOR")
         print("------------------------")
-        print("🌡 Temp:", temp)
-        print("⚙️ RPM:", rpm)
-        print("📳 Vibration:", vibration)
+        print(" Temp:", temp)
+        print(" RPM:", rpm)
+        print(" Vibration:", vibration)
+        print(" ANOMALY:", anomaly)
+        print(" MASTER ALERT:", master_alert)
 
         buffer.append(vibration)
 
@@ -74,41 +80,32 @@ def on_message(client, userdata, msg):
             output = model(seq)
             score = abs(output.item())
 
-            print("🧠 AI Score:", round(score, 4))
+            print(" AI Score:", round(score, 4))
 
         # =====================
-        # RULE ENGINE
+        # STATUS DISPLAY (NO OVERRIDE)
         # =====================
-        if vibration > 8.5:
-            status = "FAILURE RISK"
-            anomaly = 1
-            print("🚨 STATUS: FAILURE RISK")
-
-        elif vibration > 7.5:
-            status = "WARNING"
-            anomaly = 1
-            print("⚠️ STATUS: WARNING")
-
+        if anomaly == 1:
+            print(" STATUS: ANOMALY DETECTED")
         else:
-            status = "NORMAL"
-            anomaly = 0
-            print("✅ STATUS: NORMAL")
+            print(" STATUS: NORMAL")
 
         # =====================
-        # INFLUXDB WRITE (FIXED)
+        # INFLUXDB WRITE
         # =====================
         point = (
             Point("cnc_machine")
-            .field("temperature", float(temp))
-            .field("rpm", float(rpm))
-            .field("vibration", float(vibration))
-            .field("anomaly", int(anomaly))
+            .field("temperature", temp)
+            .field("rpm", rpm)
+            .field("vibration", vibration)
+            .field("anomaly", anomaly)
+            .field("master_alert", master_alert)
         )
 
         write_api.write(bucket=bucket, org=org, record=point)
 
     except Exception as e:
-        print("❌ Error:", e)
+        print(" Error:", e)
 
 # =====================
 # MQTT SETUP
@@ -119,7 +116,7 @@ client.connect("localhost", 1883, 60)
 client.subscribe("cnc/data")
 client.on_message = on_message
 
-print("🤖 Edge AI System Running...")
+print(" Edge AI System Running...")
 print("Waiting for CNC sensor data...\n")
 
 client.loop_forever()
